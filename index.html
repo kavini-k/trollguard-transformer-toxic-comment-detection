@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TrollGuard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>TrollGuard: Toxicity Detection</h1>
+      <form method="POST">
+        <textarea name="text" placeholder="Enter comment...">
+{{ text if text else '' }}</textarea
+        >
+        <button type="submit">Analyze</button>
+      </form>
+
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %} {% if prediction %}
+      <div class="results">
+        <h3>Analysis Results:</h3>
+        <p>
+          <strong>Detected Language:</strong>
+          <span class="language-info">{{ prediction.lang }}</span>
+        </p>
+
+        <ul>
+          {% for i in range(prediction.labels|length) %}
+          <li>
+            <strong>{{ TARGET_COLS[i]|capitalize }}:</strong>
+            <span
+              class="{{ 'badge toxic' if prediction.labels[i] == 1 else 'badge safe' }}"
+            >
+              {{ 'Toxic' if prediction.labels[i] == 1 else 'Safe' }}
+            </span>
+            — {{ "%.1f"|format(prediction.probs[i] * 100) }}%
+          </li>
+          {% endfor %}
+        </ul>
+
+        {% if highlights %}
+        <div class="highlighted-text">
+          <h4>Highlighted Toxic Words:</h4>
+          <p>
+            {% set text_tokens = text.split() %} {% for token in text_tokens %}
+            {% if token.lower() in highlights %}
+            <span class="highlight">{{ token }}</span>
+            {% else %} {{ token }} {% endif %} {% endfor %}
+          </p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

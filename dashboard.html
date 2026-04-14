@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TrollGuard Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .chart-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-card {
+      flex: 1;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .chart-card-full {
+      width: 100%;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    canvas {
+      max-height: 300px;
+    }
+
+    .counts-box {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>TrollGuard Analytics Dashboard</h1>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>Toxicity Categories</h2>
+    <canvas id="categoryChart"></canvas>
+    <div id="categoryCounts" class="counts-box"></div>
+  </div>
+
+  <div class="chart-card">
+    <h2>Language Distribution</h2>
+    <canvas id="languageChart"></canvas>
+  </div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-card-full">
+    <h2>Predictions Per Day</h2>
+    <canvas id="timeChart"></canvas>
+  </div>
+</div>
+
+<script>
+async function loadDashboard() {
+  try {
+    const res = await fetch("/dashboard/data");
+    const data = await res.json();
+
+    console.log("DATA:", data);
+
+    // CATEGORY PIE
+    const ctx1 = document.getElementById("categoryChart").getContext("2d");
+
+    const categoryLabels = Object.keys(data.counts);
+    const categoryValues = Object.values(data.counts);
+
+    new Chart(ctx1, {
+      type: "pie",
+      data: {
+        labels: categoryLabels,
+        datasets: [{
+          data: categoryValues,
+          backgroundColor: [
+            "#e53935","#8e24aa","#3949ab","#039be5","#43a047","#fdd835"
+          ]
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                const val = ctx.raw;
+                const percent = ((val/total)*100).toFixed(1);
+                return `${ctx.label}: ${val} (${percent}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // CATEGORY COUNTS TEXT
+    document.getElementById("categoryCounts").innerHTML =
+      categoryLabels.map((l,i)=> `<p><b>${l}</b>: ${categoryValues[i]}</p>`).join("");
+
+    // LANGUAGE PIE
+    const ctx2 = document.getElementById("languageChart").getContext("2d");
+
+    new Chart(ctx2, {
+      type: "pie",
+      data: {
+        labels: Object.keys(data.languages),
+        datasets: [{
+          data: Object.values(data.languages),
+          backgroundColor: [
+            "#ff7043","#26c6da","#66bb6a","#ab47bc","#ec407a","#ffa726"
+          ]
+        }]
+      }
+    });
+
+    // TIME SERIES
+    const ctx3 = document.getElementById("timeChart").getContext("2d");
+
+    new Chart(ctx3, {
+      type: "line",
+      data: {
+        labels: Object.keys(data.timeseries),
+        datasets: [{
+          label: "Predictions per day",
+          data: Object.values(data.timeseries),
+          borderColor: "#42a5f5",
+          backgroundColor: "rgba(66,165,245,0.2)",
+          fill: true,
+          tension: 0.3
+        }]
+      }
+    });
+
+  } catch (error) {
+    console.error("ERROR:", error);
+    alert("Dashboard failed to load!");
+  }
+}
+
+window.onload = loadDashboard;
+</script>
+
+</body>
+</html>
